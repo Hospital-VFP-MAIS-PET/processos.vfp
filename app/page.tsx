@@ -18,6 +18,7 @@ export default function Home() {
   const [patientAge, setPatientAge] = useState("");
   const [animalType, setAnimalType] = useState("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const { procedimentos, loading, error } = useProcedimentos();
 
@@ -46,6 +47,8 @@ export default function Home() {
   }, []);
 
   const generatePDF = async () => {
+    if (isGeneratingPDF) return;
+
     // Validar formulário
     const patientInfo = `${patientName}${animalType ? ` | ${animalType}` : ''}${patientAge ? ` | ${patientAge}` : ''}`;
     const validation = validateForm(patientInfo, selected.length);
@@ -68,6 +71,8 @@ export default function Home() {
 
     const element = document.getElementById("pdf-content");
     if (!element) return;
+
+    setIsGeneratingPDF(true);
 
     // Gerar HTML puro para o PDF
     const proceduresHTML = selected
@@ -162,6 +167,8 @@ export default function Home() {
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
       alert("Erro ao gerar PDF");
+    } finally {
+      setIsGeneratingPDF(false);
     }
   };
 
@@ -214,6 +221,7 @@ export default function Home() {
             onGeneratePDF={generatePDF}
             isFormValid={formValidation.valid}
             validationErrors={validationErrors}
+            isGeneratingPDF={isGeneratingPDF}
           />
         </div>
       </main>

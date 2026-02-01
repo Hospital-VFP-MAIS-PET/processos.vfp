@@ -17,6 +17,7 @@ interface ProcedureListProps {
   onGeneratePDF: () => void
   isFormValid?: boolean
   validationErrors?: Record<string, string[]>
+  isGeneratingPDF?: boolean
 }
 
 export default function ProcedureList({
@@ -26,6 +27,7 @@ export default function ProcedureList({
   onGeneratePDF,
   isFormValid = false,
   validationErrors = {},
+  isGeneratingPDF = false,
 }: ProcedureListProps) {
   return (
     <div>
@@ -194,25 +196,34 @@ export default function ProcedureList({
             <div className='flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-gray-200'>
               <button
                 onClick={onGeneratePDF}
-                disabled={!isFormValid}
+                disabled={!isFormValid || isGeneratingPDF}
                 className={`flex-1 flex items-center justify-center gap-2 text-white font-semibold py-2 sm:py-3 px-3 sm:px-6 rounded-lg transition-all duration-200 shadow-md text-sm sm:text-base ${
-                  !isFormValid ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'hover:shadow-lg'
+                  !isFormValid || isGeneratingPDF ? 'opacity-60 cursor-not-allowed bg-gray-400' : 'hover:shadow-lg cursor-pointer'
                 }`}
-                style={isFormValid ? { backgroundColor: '#00B050' } : { backgroundColor: '#9ca3af' }}
+                style={!isFormValid || isGeneratingPDF ? { backgroundColor: '#9ca3af', cursor: 'not-allowed' } : { backgroundColor: '#00B050', cursor: 'pointer' }}
                 onMouseEnter={e => {
-                  if (isFormValid) {
+                  if (isFormValid && !isGeneratingPDF) {
                     e.currentTarget.style.backgroundColor = '#009940'
                   }
                 }}
                 onMouseLeave={e => {
-                  if (isFormValid) {
+                  if (isFormValid && !isGeneratingPDF) {
                     e.currentTarget.style.backgroundColor = '#00B050'
                   }
                 }}
-                title={!isFormValid ? 'Preencha todos os campos obrigatórios' : ''}
+                title={!isFormValid ? 'Preencha todos os campos obrigatórios' : isGeneratingPDF ? 'Gerando PDF...' : ''}
               >
-                <Download size={18} />
-                Baixar PDF
+                {isGeneratingPDF ? (
+                  <span className='flex items-center gap-2'>
+                    <span className='inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
+                    Gerando PDF...
+                  </span>
+                ) : (
+                  <>
+                    <Download size={18} />
+                    Baixar PDF
+                  </>
+                )}
               </button>
             </div>
           </>
