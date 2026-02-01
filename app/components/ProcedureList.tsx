@@ -181,7 +181,7 @@ export default function ProcedureList({
                     </div>
                     <button
                       onClick={() => onRemove(procedure)}
-                      className='bg-red-100 hover:bg-red-200 text-red-600 rounded-lg p-2 transition-all duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0'
+                      className='bg-red-100 hover:bg-red-200 text-red-600 rounded-lg p-2 transition-all duration-200 flex-shrink-0'
                     >
                       <X size={18} />
                     </button>
