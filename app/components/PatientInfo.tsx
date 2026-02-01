@@ -17,12 +17,12 @@ export default function PatientInfo({
 }: PatientInfoProps) {
   return (
     <div>
-      <div className="bg-white rounded-2xl shadow-lg p-8">
-        <h3 className="text-xl font-bold text-gray-900 mb-2">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-8">
+        <h3 className="text-lg sm:text-xl font-bold mb-2" style={{ color: '#1B3D6D' }}>
           Informações do Paciente
         </h3>
-        <p className="text-xs text-gray-500 mb-6">
-          Digite o nome do animal, tipo e idade para gerar o relatório
+        <p className="text-xs mb-6" style={{ color: '#00B050' }}>
+          Copie e cole aqui o título do card do Bitrix aqui, para identficar o paciente e tutor
         </p>
         <textarea
           value={`${patientName}${animalType ? ` | ${animalType}` : ''}${patientAge ? ` | ${patientAge}` : ''}`}
@@ -32,8 +32,11 @@ export default function PatientInfo({
             onAnimalTypeChange(parts[1]?.trim() || '');
             onPatientAgeChange(parts[2]?.trim() || '');
           }}
-          placeholder="Ex: Fluffy | Gato | 3 anos"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          placeholder="Ex: (VFP) Atendimento de Rex 12345 (Cão) - João da Silva Nº 243333"
+          className="w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 resize-none text-sm text-black"
+          style={{ borderColor: '#00B050' }}
+          onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0, 176, 80, 0.2)'}
+          onBlur={(e) => e.currentTarget.style.boxShadow = ''}
           rows={3}
         />
       </div>

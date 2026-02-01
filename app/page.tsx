@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import Header from "./components/Header";
@@ -8,6 +8,7 @@ import PatientInfo from "./components/PatientInfo";
 import ProcedureSelector from "./components/ProcedureSelector";
 import ProcedureList from "./components/ProcedureList";
 import { useProcedimentos, type Procedimento } from "./hooks/useProcedimentos";
+import { validateForm } from "./schemas/formValidation";
 
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,8 +17,15 @@ export default function Home() {
   const [patientName, setPatientName] = useState("");
   const [patientAge, setPatientAge] = useState("");
   const [animalType, setAnimalType] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
 
   const { procedimentos, loading, error } = useProcedimentos();
+
+  // Validação do formulário
+  const formValidation = useMemo(() => {
+    const patientInfo = `${patientName}${animalType ? ` | ${animalType}` : ''}${patientAge ? ` | ${patientAge}` : ''}`;
+    return validateForm(patientInfo, selected.length);
+  }, [patientName, animalType, patientAge, selected.length]);
 
   // Usar useCallback para garantir que as funções não sejam recriadas a cada render
   const handleSelect = useCallback((procedure: Procedimento) => {
@@ -38,6 +46,21 @@ export default function Home() {
   }, []);
 
   const generatePDF = async () => {
+    // Validar formulário
+    const patientInfo = `${patientName}${animalType ? ` | ${animalType}` : ''}${patientAge ? ` | ${patientAge}` : ''}`;
+    const validation = validateForm(patientInfo, selected.length);
+    
+    if (!validation.valid) {
+      setValidationErrors(validation.errors);
+      const errorMessages = Object.values(validation.errors)
+        .flat()
+        .join("\n");
+      alert(`Preencha os campos obrigatórios:\n\n${errorMessages}`);
+      return;
+    }
+
+    setValidationErrors({});
+
     if (selected.length === 0) {
       alert("Selecione pelo menos um procedimento");
       return;
@@ -46,11 +69,68 @@ export default function Home() {
     const element = document.getElementById("pdf-content");
     if (!element) return;
 
+    // Gerar HTML puro para o PDF
+    const proceduresHTML = selected
+      .map(
+        (procedure, index) => `
+      <div style="display: flex; align-items: center; gap: 10px; padding: 12px; margin-bottom: 8px; background-color: #ffffff; border: 1px solid #d1d5db; border-radius: 6px;">
+        <div style="width: 20px; text-align: center; color: #000000; font-weight: bold; font-size: 12px; flex-shrink: 0;">${index + 1}</div>
+        <p style="font-size: 14px; color: #000000; margin: 0; flex: 1;">${procedure.nome}</p>
+      </div>
+    `
+      )
+      .join("");
+
+    const pdfHTML = `
+    <div style="padding: 40px; background-color: #ffffff; font-family: Arial, sans-serif; width: 800px; margin: 0 auto; box-sizing: border-box;">
+      <div style="margin-bottom: 30px; border-bottom: 2px solid #000000; padding-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 15px;">
+          <img src="/logo.png" alt="VFP Hospital Veterinário" style="height: 60px; width: auto;" />
+        </div>
+        <h2 style="font-size: 24px; font-weight: bold; color: #000000; margin: 15px 0 20px 0;">Relatório de Procedimentos</h2>
+        
+        <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #d1d5db;">
+          ${patientName ? `<p style="margin: 5px 0; font-size: 14px; color: #000000;"><strong>Paciente:</strong> ${patientName}</p>` : ""}
+          ${animalType ? `<p style="margin: 5px 0; font-size: 14px; color: #000000;"><strong>Tipo:</strong> ${animalType}</p>` : ""}
+          ${patientAge ? `<p style="margin: 5px 0; font-size: 14px; color: #000000;"><strong>Idade:</strong> ${patientAge}</p>` : ""}
+          <p style="margin: 5px 0; font-size: 14px; color: #000000;"><strong>Data:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
+        </div>
+      </div>
+
+      <div>
+        <h3 style="font-size: 18px; font-weight: bold; color: #000000; margin-bottom: 15px;">Procedimentos a Realizar (${selected.length})</h3>
+        ${proceduresHTML}
+      </div>
+      
+      <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #000000; text-align: center;">
+        <p style="font-size: 12px; color: #6b7280; margin: 5px 0;">VFP Hospital Veterinário</p>
+        <p style="font-size: 11px; color: #9ca3af; margin: 5px 0;">Documento gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}</p>
+      </div>
+    </div>
+    `;
+
+    // Inserir HTML puro no elemento
+    element.innerHTML = pdfHTML;
+    
+    // Deixar visível para html2canvas capturar corretamente
+    element.style.display = "block";
+    element.style.position = "fixed";
+    element.style.left = "0";
+    element.style.top = "0";
+    element.style.width = "800px";
+    element.style.zIndex = "-9999";
+
     try {
       const canvas = await html2canvas(element, {
         scale: 2,
         backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
+      
+      // Esconder novamente após capturar
+      element.style.display = "none";
 
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
@@ -86,23 +166,23 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
       <Header />
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-12">
+      <main className="mx-auto px-3 sm:px-6 py-6 sm:py-12 max-w-4xl">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-4xl font-bold text-gray-900 mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-4xl font-bold mb-2" style={{ color: '#1B3D6D' }}>
             Agendamento de Procedimentos
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-base sm:text-lg" style={{ color: '#00B050' }}>
             Selecione os procedimentos a serem realizados no animal
           </p>
         </div>
 
         {/* Cards Container */}
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-4 sm:gap-8">
           <PatientInfo
             patientName={patientName}
             animalType={animalType}
@@ -132,6 +212,8 @@ export default function Home() {
             patientAge={patientAge}
             onRemove={handleRemove}
             onGeneratePDF={generatePDF}
+            isFormValid={formValidation.valid}
+            validationErrors={validationErrors}
           />
         </div>
       </main>

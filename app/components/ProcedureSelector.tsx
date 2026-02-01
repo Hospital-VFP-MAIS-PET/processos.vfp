@@ -40,6 +40,15 @@ const ProcedureSelector = memo(function ProcedureSelector({
   // Debounce a busca para evitar re-renderizações frequentes
   const debouncedSearchTerm = useDebounce(searchTerm, 150);
 
+  // Detectar se está em mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Filtrar com o termo debouncizado
   const debouncedFiltered = useMemo(() => {
     if (!debouncedSearchTerm.trim()) return allProcedimentos;
@@ -117,7 +126,7 @@ const ProcedureSelector = memo(function ProcedureSelector({
     }) => {
       const procedure = items[index];
       return (
-        <div style={style}>
+        <div style={{...style, cursor: 'pointer'}} className="cursor-pointer">
           <ProcedureItem
             procedure={procedure}
             isSelected={cods.has(procedure.cod)}
@@ -131,8 +140,8 @@ const ProcedureSelector = memo(function ProcedureSelector({
 
   return (
     <div>
-      <div className="bg-white rounded-2xl shadow-lg p-8">
-        <label className="block text-sm font-semibold text-gray-700 mb-4">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-8">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-4">
           Selecione os Procedimentos
         </label>
         <div className="relative">
@@ -158,20 +167,24 @@ const ProcedureSelector = memo(function ProcedureSelector({
 
           {/* Dropdown Menu */}
           {isOpen && !loading && (
-            <div className="absolute top-full left-0 right-0 mt-3 bg-white border-2 border-blue-200 rounded-xl shadow-xl z-10 overflow-hidden">
+            <div className="absolute top-full left-0 right-0 mt-3 bg-white border-2 rounded-xl shadow-xl z-10 overflow-hidden" style={{ borderColor: '#00B050' }}>
               {/* Campo de Busca */}
-              <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 sticky top-0 z-20">
+              <div className="p-4 border-b border-gray-100 sticky top-0 z-20" style={{ backgroundColor: '#f0fdf4' }}>
                 <div className="relative">
                   <Search
                     size={18}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2"
+                    style={{ color: '#00B050' }}
                   />
                   <input
                     type="text"
                     placeholder="Buscar procedimento..."
                     value={searchTerm}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-black"
+                    style={{ borderColor: '#00B050' }}
+                    onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0, 176, 80, 0.2)'}
+                    onBlur={(e) => e.currentTarget.style.boxShadow = ''}
                     autoFocus
                   />
                 </div>
@@ -188,7 +201,7 @@ const ProcedureSelector = memo(function ProcedureSelector({
               {!listReady ? (
                 <div
                   ref={listContainerRef}
-                  className="h-[384px] flex items-center justify-center text-gray-400 text-sm"
+                  className="h-96 sm:h-[384px] flex items-center justify-center text-gray-400 text-xs sm:text-sm"
                 >
                   Carregando lista...
                 </div>
@@ -197,13 +210,13 @@ const ProcedureSelector = memo(function ProcedureSelector({
                   <List<typeof listRowProps>
                     rowComponent={RowComponent}
                     rowCount={deferredFiltered.length}
-                    rowHeight={52}
+                    rowHeight={isMobile ? 75 : 52}
                     rowProps={listRowProps}
-                    style={{ height: 384, width: listWidth }}
+                    style={{ height: isMobile ? 300 : 384, width: listWidth }}
                   />
                 </div>
               ) : (
-                <div className="px-5 py-8 text-gray-500 text-center text-sm h-96 flex items-center justify-center">
+                <div className="px-4 sm:px-5 py-8 text-gray-500 text-center text-xs sm:text-sm h-96 flex items-center justify-center">
                   {debouncedSearchTerm
                     ? "Nenhum procedimento encontrado"
                     : "Nenhum procedimento disponível"}

@@ -35,11 +35,11 @@ export async function GET(request: NextRequest) {
 
     // Criar conexão com banco de dados
     const connection = await mysql.createConnection({
-      host: process.env.NEXT_PUBLIC_DB_HOST,
-      port: parseInt(process.env.NEXT_PUBLIC_DB_PORT || "3306"),
-      user: process.env.NEXT_PUBLIC_DB_USER,
-      password: process.env.NEXT_PUBLIC_DB_PASSWORD,
-      database: process.env.NEXT_PUBLIC_DB_NAME,
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || "3306"),
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
     });
 
     // Query para buscar todos os procedimentos - ordenado por nome

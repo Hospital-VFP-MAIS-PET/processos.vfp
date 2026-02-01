@@ -5,6 +5,10 @@
   --foreground: #171717;
   --font-poppins: var(--font-poppins);
   --font-dm-sans: var(--font-dm-sans);
+  --vfp-green: #00B050;
+  --vfp-green-dark: #009940;
+  --vfp-navy: #1B3D6D;
+  --vfp-navy-dark: #0F2744;
 }
 
 @theme inline {
@@ -12,6 +16,10 @@
   --color-foreground: var(--foreground);
   --font-poppins: var(--font-poppins);
   --font-dm-sans: var(--font-dm-sans);
+  --color-vfp-green: var(--vfp-green);
+  --color-vfp-green-dark: var(--vfp-green-dark);
+  --color-vfp-navy: var(--vfp-navy);
+  --color-vfp-navy-dark: var(--vfp-navy-dark);
 }
 
 @media (prefers-color-scheme: dark) {

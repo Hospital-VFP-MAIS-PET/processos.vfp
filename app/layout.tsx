@@ -15,8 +15,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Seletor de Departamentos",
-  description: "Selecione seus departamentos com facilidade",
+  title: "Seletor de Procedimentos VFP",
+  description: "Selecione seus procedimentos com facilidade",
+  viewport: "width=device-width, initial-scale=1",
 };
 
 export default function RootLayout({

@@ -25,22 +25,34 @@ const ProcedureItem = memo(
     return (
       <button
         onClick={handleClick}
-        className={`w-full text-left px-5 py-3 flex items-center gap-3 border-b border-gray-50 transition-all duration-150 ${
-          isSelected
-            ? "bg-blue-50 border-l-4 border-l-blue-600"
-            : "hover:bg-gray-50"
-        }`}
+        className="w-full text-left px-2 sm:px-5 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 border-b border-gray-50 transition-all duration-150 cursor-pointer"
+        style={{
+          backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
+          borderLeftWidth: isSelected ? '4px' : '0',
+          borderLeftColor: isSelected ? '#00B050' : 'transparent',
+          minHeight: '60px',
+          alignItems: 'flex-start',
+          paddingTop: '8px',
+          paddingBottom: '8px',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          if (!isSelected) e.currentTarget.style.backgroundColor = '#f9fafb';
+        }}
+        onMouseLeave={(e) => {
+          if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+        }}
       >
         <input
           type="checkbox"
           checked={isSelected}
           readOnly
-          className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600 flex-shrink-0"
+          className="w-5 h-5 rounded cursor-pointer flex-shrink-0"
+          style={{ accentColor: '#00B050' }}
         />
         <span
-          className={`${
-            isSelected ? "font-semibold text-gray-900" : "text-gray-700"
-          }`}
+          className={`${isSelected ? "font-semibold" : ""} text-xs sm:text-sm break-words overflow-wrap`}
+          style={{ color: isSelected ? '#1B3D6D' : '#374151', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal' }}
         >
           {procedure.nome}
         </span>
