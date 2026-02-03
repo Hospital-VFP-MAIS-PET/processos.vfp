@@ -4,14 +4,11 @@ import mysql from "mysql2/promise";
 interface Procedimento {
   cod: number;
   nome: string;
+  planos: string;
   grupo_linha: string;
   sub_grupo: string;
-  preco_tabela: string;
+  preco: string;
 }
-
-let cachedProcedimentos: Procedimento[] | null = null;
-let cacheTimestamp = 0;
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hora de cache
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minuto
 const RATE_LIMIT_MAX = 60; // 60 req/min por IP
@@ -63,6 +60,7 @@ function isAllowedOrigin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  let connection: mysql.Connection | null = null;
   try {
     if (!isAllowedOrigin(request)) {
       return NextResponse.json(
@@ -79,27 +77,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verificar cache primeiro
-    const now = Date.now();
-    if (cachedProcedimentos && now - cacheTimestamp < CACHE_DURATION) {
-      return NextResponse.json(
-        {
-          success: true,
-          data: cachedProcedimentos,
-          cached: true,
-          cacheAge: Math.floor((now - cacheTimestamp) / 1000),
-        },
-        {
-          headers: {
-            "Cache-Control": "public, max-age=3600, s-maxage=3600",
-            Vary: "Origin",
-          },
-        }
-      );
-    }
+    const planosParam = request.nextUrl.searchParams.get("plano");
+    const subGrupoParam = request.nextUrl.searchParams.get("sub_grupo");
 
     // Criar conexão com banco de dados
-    const connection = await mysql.createConnection({
+    connection = await mysql.createConnection({
       host: process.env.DB_HOST,
       port: parseInt(process.env.DB_PORT || "3306"),
       user: process.env.DB_USER,
@@ -107,56 +89,75 @@ export async function GET(request: NextRequest) {
       database: process.env.DB_NAME,
     });
 
-    // Query para buscar todos os procedimentos - ordenado por nome
+    if (!planosParam) {
+      const [rows] = await connection.execute(
+        "SELECT DISTINCT planos FROM Procedimentos WHERE planos IS NOT NULL AND planos <> '' ORDER BY planos ASC"
+      );
+
+      const planos = (rows as Array<{ planos: string }>).map((r) => r.planos);
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: planos,
+          count: planos.length,
+        },
+        {
+          headers: {
+            "Cache-Control": "no-store",
+            Vary: "Origin",
+          },
+        }
+      );
+    }
+
+    if (!subGrupoParam) {
+      const [rows] = await connection.execute(
+        "SELECT DISTINCT sub_grupo FROM Procedimentos WHERE planos = ? AND sub_grupo IS NOT NULL AND sub_grupo <> '' ORDER BY sub_grupo ASC",
+        [planosParam]
+      );
+
+      const subGrupos = (rows as Array<{ sub_grupo: string }>).map(
+        (r) => r.sub_grupo
+      );
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: subGrupos,
+          count: subGrupos.length,
+        },
+        {
+          headers: {
+            "Cache-Control": "no-store",
+            Vary: "Origin",
+          },
+        }
+      );
+    }
+
     const [rows] = await connection.execute(
-      "SELECT cod, nome, grupo_linha, sub_grupo, preco_tabela FROM Processos ORDER BY nome ASC LIMIT 5000"
+      "SELECT cod, nome, grupo_linha, planos, sub_grupo, preco FROM Procedimentos WHERE planos = ? AND sub_grupo = ? ORDER BY nome ASC LIMIT 5000",
+      [planosParam, subGrupoParam]
     );
 
     const procedimentos = rows as Procedimento[];
-
-    // Fechar conexão imediatamente
-    await connection.end();
-
-    // Armazenar em cache na memória
-    cachedProcedimentos = procedimentos;
-    cacheTimestamp = now;
 
     return NextResponse.json(
       {
         success: true,
         data: procedimentos,
-        cached: false,
         count: procedimentos.length,
       },
       {
         headers: {
-          "Cache-Control": "public, max-age=3600, s-maxage=3600",
-          "X-Cache": "MISS",
+          "Cache-Control": "no-store",
           Vary: "Origin",
         },
       }
     );
   } catch (error) {
     console.error("Erro ao buscar procedimentos:", error);
-
-    // Se houver erro, tentar devolver o cache mesmo que expirado
-    if (cachedProcedimentos) {
-      return NextResponse.json(
-        {
-          success: true,
-          data: cachedProcedimentos,
-          cached: true,
-          warning: "Usando cache expirado devido a erro de conexão",
-        },
-        {
-          status: 200,
-          headers: {
-            "Cache-Control": "public, max-age=300",
-            Vary: "Origin",
-          },
-        }
-      );
-    }
 
     return NextResponse.json(
       {
@@ -166,5 +167,9 @@ export async function GET(request: NextRequest) {
       },
       { status: 500 }
     );
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 }

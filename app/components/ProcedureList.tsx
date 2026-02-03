@@ -3,17 +3,24 @@ import { Search, X, Download, Printer } from 'lucide-react'
 export interface Procedimento {
   cod: number
   nome: string
+  planos: string
   grupo_linha: string
   sub_grupo: string
-  preco_tabela: string
+  preco: string
+}
+
+export interface SelectedProcedimento extends Procedimento {
+  count: number
 }
 
 interface ProcedureListProps {
-  selected: Procedimento[]
+  selected: SelectedProcedimento[]
   patientName: string
   patientAge: string
   animalType: string
-  onRemove: (procedure: Procedimento) => void
+  onRemove: (procedure: SelectedProcedimento) => void
+  onIncrement: (procedure: SelectedProcedimento) => void
+  onDecrement: (procedure: SelectedProcedimento) => void
   onGeneratePDF: () => void
   isFormValid?: boolean
   validationErrors?: Record<string, string[]>
@@ -24,11 +31,15 @@ export default function ProcedureList({
   selected,
   patientName,
   onRemove,
+  onIncrement,
+  onDecrement,
   onGeneratePDF,
   isFormValid = false,
   validationErrors = {},
   isGeneratingPDF = false,
 }: ProcedureListProps) {
+  const totalCount = selected.reduce((sum, item) => sum + item.count, 0)
+
   return (
     <div>
       <div className='bg-white rounded-2xl shadow-lg p-4 sm:p-8 min-h-96 flex flex-col'>
@@ -91,7 +102,7 @@ export default function ProcedureList({
                     marginBottom: '15px',
                   }}
                 >
-                  Procedimentos a Realizar ({selected.length})
+                    Procedimentos a Realizar ({totalCount})
                 </h3>
                 {selected.map((procedure, index) => (
                   <div
@@ -135,8 +146,29 @@ export default function ProcedureList({
                         flex: 1,
                       }}
                     >
-                      {procedure.nome}
+                        {procedure.cod} - {procedure.nome}
                     </p>
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          color: '#00B050',
+                          fontWeight: 'bold',
+                          marginRight: '8px',
+                        }}
+                      >
+                        {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -' ? procedure.preco : 'R$ 0'}
+                      </span>
+                      <div
+                        style={{
+                          marginLeft: '8px',
+                          fontSize: '12px',
+                          color: '#000000',
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Qtd: x{procedure.count}
+                      </div>
                   </div>
                 ))}
               </div>
@@ -164,29 +196,105 @@ export default function ProcedureList({
                 {selected.map((procedure, index) => (
                   <div
                     key={procedure.cod}
-                    className='group border-2 rounded-xl p-2 sm:p-3 flex items-center justify-between hover:shadow-md transition-all duration-200'
+                    className='group border-2 rounded-xl p-2 sm:p-3 hover:shadow-md transition-all duration-200'
                     style={{
                       backgroundColor: '#f0fdf4',
                       borderColor: '#00B050',
                     }}
                   >
-                    <div className='flex items-center gap-2 sm:gap-3 flex-1'>
-                      <div
-                        className='w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-xs'
-                        style={{ backgroundColor: '#00B050' }}
-                      >
-                        <span className='text-white font-bold'>{index + 1}</span>
+                    {/* Mobile Layout */}
+                    <div className='flex sm:hidden flex-col gap-2'>
+                      <div className='flex items-start gap-2'>
+                        <div
+                          className='w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-xs'
+                          style={{ backgroundColor: '#00B050' }}
+                        >
+                          <span className='text-white font-bold'>{index + 1}</span>
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <p className='font-medium text-xs break-words' style={{ color: '#1B3D6D' }}>
+                            {procedure.cod} - {procedure.nome}
+                          </p>
+                        </div>
                       </div>
-                      <p className='font-medium text-sm sm:text-base' style={{ color: '#1B3D6D' }}>
-                        {procedure.nome}
-                      </p>
+                      <div className='flex items-center justify-between gap-2 ml-8'>
+                        <p className='font-semibold text-xs' style={{ color: '#00B050' }}>
+                          {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -' ? procedure.preco : 'R$ 0'}
+                        </p>
+                        <div className='flex items-center gap-2'>
+                          <div className='flex items-center gap-1 bg-gray-100 rounded-lg p-1'>
+                            <button
+                              onClick={() => onDecrement(procedure)}
+                              disabled={procedure.count <= 1}
+                              className='w-6 h-6 flex items-center justify-center rounded bg-white hover:bg-gray-200 text-gray-700 font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                            >
+                              -
+                            </button>
+                            <span className='px-1.5 text-xs font-semibold text-gray-700 min-w-[1.5rem] text-center'>
+                              {procedure.count}
+                            </span>
+                            <button
+                              onClick={() => onIncrement(procedure)}
+                              className='w-6 h-6 flex items-center justify-center rounded bg-white hover:bg-gray-200 text-gray-700 font-bold text-sm transition-all duration-200'
+                            >
+                              +
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => onRemove(procedure)}
+                            className='bg-red-100 hover:bg-red-200 text-red-600 rounded-lg p-1.5 transition-all duration-200'
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => onRemove(procedure)}
-                      className='bg-red-100 hover:bg-red-200 text-red-600 rounded-lg p-2 transition-all duration-200 flex-shrink-0'
-                    >
-                      <X size={18} />
-                    </button>
+
+                    {/* Desktop Layout */}
+                    <div className='hidden sm:flex items-center justify-between'>
+                      <div className='flex items-center gap-3 flex-1'>
+                        <div
+                          className='w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-xs'
+                          style={{ backgroundColor: '#00B050' }}
+                        >
+                          <span className='text-white font-bold'>{index + 1}</span>
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <p className='font-medium text-base' style={{ color: '#1B3D6D' }}>
+                            {procedure.cod} - {procedure.nome}
+                          </p>
+                        </div>
+                        <p className='font-semibold text-sm mr-2 flex-shrink-0' style={{ color: '#00B050' }}>
+                          {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -' ? procedure.preco : 'R$ 0'}
+                        </p>
+                      </div>
+                      <div className='flex items-center gap-2 flex-shrink-0'>
+                        <div className='flex items-center gap-1 bg-gray-100 rounded-lg p-1'>
+                          <button
+                            onClick={() => onDecrement(procedure)}
+                            disabled={procedure.count <= 1}
+                            className='w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-gray-200 text-gray-700 font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                          >
+                            -
+                          </button>
+                          <span className='px-2 text-sm font-semibold text-gray-700 min-w-[2rem] text-center'>
+                            {procedure.count}
+                          </span>
+                          <button
+                            onClick={() => onIncrement(procedure)}
+                            className='w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-gray-200 text-gray-700 font-bold transition-all duration-200'
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => onRemove(procedure)}
+                          className='bg-red-100 hover:bg-red-200 text-red-600 rounded-lg p-2 transition-all duration-200'
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

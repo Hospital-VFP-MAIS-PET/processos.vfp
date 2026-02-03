@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import Header from "./components/Header";
@@ -13,36 +13,75 @@ import { validateForm } from "./schemas/formValidation";
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selected, setSelected] = useState<Procedimento[]>([]);
+  const [selected, setSelected] = useState<Array<Procedimento & { count: number }>>([]);
   const [patientName, setPatientName] = useState("");
   const [patientAge, setPatientAge] = useState("");
   const [animalType, setAnimalType] = useState("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  const { procedimentos, loading, error } = useProcedimentos();
+  const {
+    planos,
+    subGrupos,
+    procedimentos,
+    loadingPlanos,
+    loadingSubGrupos,
+    loadingProcedimentos,
+    error,
+    selectedPlano,
+    selectedSubGrupo,
+    setSelectedPlano,
+    setSelectedSubGrupo,
+  } = useProcedimentos();
+
+  useEffect(() => {
+    setSearchTerm("");
+    setIsOpen(false);
+  }, [selectedPlano, selectedSubGrupo]);
+
+  const totalSelectedCount = useMemo(
+    () => selected.reduce((sum, item) => sum + item.count, 0),
+    [selected]
+  );
 
   // Validação do formulário
   const formValidation = useMemo(() => {
     const patientInfo = `${patientName}${animalType ? ` | ${animalType}` : ''}${patientAge ? ` | ${patientAge}` : ''}`;
-    return validateForm(patientInfo, selected.length);
-  }, [patientName, animalType, patientAge, selected.length]);
+    return validateForm(patientInfo, totalSelectedCount);
+  }, [patientName, animalType, patientAge, totalSelectedCount]);
 
   // Usar useCallback para garantir que as funções não sejam recriadas a cada render
   const handleSelect = useCallback((procedure: Procedimento) => {
     setSelected((prevSelected) => {
-      const isSelected = prevSelected.some((p) => p.cod === procedure.cod);
-      if (isSelected) {
+      const existing = prevSelected.find((p) => p.cod === procedure.cod);
+      if (existing) {
         return prevSelected.filter((p) => p.cod !== procedure.cod);
-      } else {
-        return [...prevSelected, procedure];
       }
+      return [...prevSelected, { ...procedure, count: 1 }];
     });
   }, []);
 
-  const handleRemove = useCallback((procedure: Procedimento) => {
+  const handleRemove = useCallback((procedure: Procedimento & { count: number }) => {
     setSelected((prevSelected) =>
       prevSelected.filter((p) => p.cod !== procedure.cod)
+    );
+  }, []);
+
+  const handleIncrement = useCallback((procedure: Procedimento & { count: number }) => {
+    setSelected((prevSelected) =>
+      prevSelected.map((p) =>
+        p.cod === procedure.cod ? { ...p, count: p.count + 1 } : p
+      )
+    );
+  }, []);
+
+  const handleDecrement = useCallback((procedure: Procedimento & { count: number }) => {
+    setSelected((prevSelected) =>
+      prevSelected.map((p) =>
+        p.cod === procedure.cod && p.count > 1
+          ? { ...p, count: p.count - 1 }
+          : p
+      )
     );
   }, []);
 
@@ -51,7 +90,7 @@ export default function Home() {
 
     // Validar formulário
     const patientInfo = `${patientName}${animalType ? ` | ${animalType}` : ''}${patientAge ? ` | ${patientAge}` : ''}`;
-    const validation = validateForm(patientInfo, selected.length);
+    const validation = validateForm(patientInfo, totalSelectedCount);
     
     if (!validation.valid) {
       setValidationErrors(validation.errors);
@@ -64,7 +103,7 @@ export default function Home() {
 
     setValidationErrors({});
 
-    if (selected.length === 0) {
+    if (totalSelectedCount === 0) {
       alert("Selecione pelo menos um procedimento");
       return;
     }
@@ -77,12 +116,17 @@ export default function Home() {
     // Gerar HTML puro para o PDF
     const proceduresHTML = selected
       .map(
-        (procedure, index) => `
+        (procedure, index) => {
+          const preco = procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -' ? procedure.preco : 'R$ 0';
+          return `
       <div style="display: flex; align-items: center; gap: 10px; padding: 12px; margin-bottom: 8px; background-color: #ffffff; border: 1px solid #d1d5db; border-radius: 6px;">
         <div style="width: 20px; text-align: center; color: #000000; font-weight: bold; font-size: 12px; flex-shrink: 0;">${index + 1}</div>
-        <p style="font-size: 14px; color: #000000; margin: 0; flex: 1;">${procedure.nome}</p>
+        <p style="font-size: 14px; color: #000000; margin: 0; flex: 1;">${procedure.cod} - ${procedure.nome}</p>
+        <span style="font-size: 14px; color: #000000;  margin-right: 8px;">${preco}</span>
+        <span style="font-size: 14px; color: #000000;  white-space: nowrap;">Qtd: x${procedure.count}</span>
       </div>
     `
+        }
       )
       .join("");
 
@@ -103,7 +147,7 @@ export default function Home() {
       </div>
 
       <div>
-        <h3 style="font-size: 18px; font-weight: bold; color: #000000; margin-bottom: 15px;">Procedimentos a Realizar (${selected.length})</h3>
+        <h3 style="font-size: 18px; font-weight: bold; color: #000000; margin-bottom: 15px;">Procedimentos a Realizar (${totalSelectedCount})</h3>
         ${proceduresHTML}
       </div>
       
@@ -205,10 +249,18 @@ export default function Home() {
             selectedCount={selected.length}
             selected={selected}
             allProcedimentos={procedimentos}
-            loading={loading}
+            planos={planos}
+            subGrupos={subGrupos}
+            selectedPlano={selectedPlano}
+            selectedSubGrupo={selectedSubGrupo}
+            loadingPlanos={loadingPlanos}
+            loadingSubGrupos={loadingSubGrupos}
+            loadingProcedimentos={loadingProcedimentos}
             error={error}
             onToggleDropdown={() => setIsOpen(!isOpen)}
             onSearchChange={setSearchTerm}
+            onPlanoChange={setSelectedPlano}
+            onSubGrupoChange={setSelectedSubGrupo}
             onSelect={handleSelect}
           />
 
@@ -218,6 +270,8 @@ export default function Home() {
             animalType={animalType}
             patientAge={patientAge}
             onRemove={handleRemove}
+            onIncrement={handleIncrement}
+            onDecrement={handleDecrement}
             onGeneratePDF={generatePDF}
             isFormValid={formValidation.valid}
             validationErrors={validationErrors}

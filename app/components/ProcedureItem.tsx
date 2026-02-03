@@ -3,9 +3,10 @@ import { memo } from "react";
 export interface Procedimento {
   cod: number;
   nome: string;
+  planos: string;
   grupo_linha: string;
   sub_grupo: string;
-  preco_tabela: string;
+  preco: string;
 }
 
 interface ProcedureItemProps {
@@ -50,12 +51,20 @@ const ProcedureItem = memo(
           className="w-5 h-5 rounded cursor-pointer flex-shrink-0"
           style={{ accentColor: '#00B050' }}
         />
-        <span
-          className={`${isSelected ? "font-semibold" : ""} text-xs sm:text-sm break-words overflow-wrap`}
-          style={{ color: isSelected ? '#1B3D6D' : '#374151', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal' }}
-        >
-          {procedure.nome}
-        </span>
+        <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+          <span
+            className={`${isSelected ? "font-semibold" : ""} text-xs sm:text-sm break-words overflow-wrap flex-1`}
+            style={{ color: isSelected ? '#1B3D6D' : '#374151', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal' }}
+          >
+            {procedure.cod} - {procedure.nome}
+          </span>
+          <span
+            className="text-xs font-semibold flex-shrink-0"
+            style={{ color: '#00B050' }}
+          >
+            {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -' ? procedure.preco : 'R$ 0'}
+          </span>
+        </div>
       </button>
     );
   },

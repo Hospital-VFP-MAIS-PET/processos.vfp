@@ -7,21 +7,34 @@ import ProcedureItem from "./ProcedureItem";
 export interface Procedimento {
   cod: number;
   nome: string;
+  planos: string;
   grupo_linha: string;
   sub_grupo: string;
-  preco_tabela: string;
+  preco: string;
+}
+
+export interface SelectedProcedimento extends Procedimento {
+  count: number;
 }
 
 interface ProcedureSelectorProps {
   isOpen: boolean;
   searchTerm: string;
   selectedCount: number;
-  selected: Procedimento[];
+  selected: SelectedProcedimento[];
   allProcedimentos: Procedimento[];
-  loading: boolean;
+  planos: string[];
+  subGrupos: string[];
+  selectedPlano: string;
+  selectedSubGrupo: string;
+  loadingPlanos: boolean;
+  loadingSubGrupos: boolean;
+  loadingProcedimentos: boolean;
   error: string | null;
   onToggleDropdown: () => void;
   onSearchChange: (term: string) => void;
+  onPlanoChange: (value: string) => void;
+  onSubGrupoChange: (value: string) => void;
   onSelect: (procedure: Procedimento) => void;
 }
 
@@ -31,10 +44,18 @@ const ProcedureSelector = memo(function ProcedureSelector({
   selectedCount,
   selected,
   allProcedimentos,
-  loading,
+  planos,
+  subGrupos,
+  selectedPlano,
+  selectedSubGrupo,
+  loadingPlanos,
+  loadingSubGrupos,
+  loadingProcedimentos,
   error,
   onToggleDropdown,
   onSearchChange,
+  onPlanoChange,
+  onSubGrupoChange,
   onSelect,
 }: ProcedureSelectorProps) {
   // Debounce a busca para evitar re-renderizações frequentes
@@ -144,18 +165,98 @@ const ProcedureSelector = memo(function ProcedureSelector({
         <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-4">
           Selecione os Procedimentos
         </label>
+
+        <div className="grid gap-4 sm:grid-cols-2 mb-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+              Plano
+            </label>
+            <div className="relative">
+              <select
+                value={selectedPlano}
+                onChange={(e) => onPlanoChange(e.target.value)}
+                disabled={loadingPlanos}
+                className="w-full px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-black bg-white appearance-none"
+                style={{ borderColor: "#00B050" }}
+              >
+                <option value="">
+                  {loadingPlanos ? "Carregando planos..." : "Selecione um plano"}
+                </option>
+                {planos.map((plano) => (
+                  <option key={plano} value={plano}>
+                    {plano}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={20}
+                className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 transition-transform duration-300 ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+              Subgrupo
+            </label>
+            <div className="relative">
+              <select
+                value={selectedSubGrupo}
+                onChange={(e) => onSubGrupoChange(e.target.value)}
+                disabled={!selectedPlano || loadingSubGrupos}
+                className="w-full px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-black bg-white disabled:bg-gray-50 appearance-none"
+                style={{ borderColor: "#00B050" }}
+              >
+                <option value="">
+                  {!selectedPlano
+                    ? "Selecione um plano primeiro"
+                    : loadingSubGrupos
+                    ? "Carregando subgrupos..."
+                    : "Selecione um subgrupo"}
+                </option>
+                {subGrupos.map((subGrupo) => (
+                  <option key={subGrupo} value={subGrupo}>
+                    {subGrupo}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={20}
+                className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 transition-transform duration-300 ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              />
+            </div>
+          </div>
+        </div>
+
+        {!selectedPlano && (
+          <p className="text-xs sm:text-sm text-gray-500 mb-4">
+            Selecione um plano para listar os subgrupos.
+          </p>
+        )}
+        {selectedPlano && !selectedSubGrupo && (
+          <p className="text-xs sm:text-sm text-gray-500 mb-4">
+            Selecione um subgrupo para carregar os procedimentos.
+          </p>
+        )}
+
         <div className="relative">
           <button
             onClick={onToggleDropdown}
-            disabled={loading}
+            disabled={!selectedSubGrupo || loadingProcedimentos}
             className="w-full flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-gray-200 rounded-xl px-5 py-4 hover:border-blue-400 transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span className="text-gray-700 font-medium">
-              {loading
-                ? "Carregando..."
+              {loadingProcedimentos
+                ? "Carregando procedimentos..."
                 : selectedCount > 0
                 ? `${selectedCount} procedimento${selectedCount !== 1 ? "s" : ""} selecionado${selectedCount !== 1 ? "s" : ""}`
-                : "Selecionar procedimentos..."}
+                : selectedSubGrupo
+                ? "Selecionar procedimentos..."
+                : "Selecione um subgrupo primeiro"}
             </span>
             <ChevronDown
               size={20}
@@ -166,7 +267,7 @@ const ProcedureSelector = memo(function ProcedureSelector({
           </button>
 
           {/* Dropdown Menu */}
-          {isOpen && !loading && (
+          {isOpen && !loadingProcedimentos && (
             <div className="absolute top-full left-0 right-0 mt-3 bg-white border-2 rounded-xl shadow-xl z-10 overflow-hidden" style={{ borderColor: '#00B050' }}>
               {/* Campo de Busca */}
               <div className="p-4 border-b border-gray-100 sticky top-0 z-20" style={{ backgroundColor: '#f0fdf4' }}>
@@ -181,6 +282,7 @@ const ProcedureSelector = memo(function ProcedureSelector({
                     placeholder="Buscar procedimento..."
                     value={searchTerm}
                     onChange={(e) => onSearchChange(e.target.value)}
+                    disabled={!selectedSubGrupo}
                     className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-black"
                     style={{ borderColor: '#00B050' }}
                     onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0, 176, 80, 0.2)'}
@@ -225,7 +327,7 @@ const ProcedureSelector = memo(function ProcedureSelector({
             </div>
           )}
 
-          {loading && isOpen && (
+          {loadingProcedimentos && isOpen && (
             <div className="absolute top-full left-0 right-0 mt-3 bg-white border-2 border-blue-200 rounded-xl shadow-xl z-10 p-4 text-center text-gray-500">
               Carregando procedimentos...
             </div>
