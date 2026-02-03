@@ -63,6 +63,9 @@ const ProcedureSelector = memo(function ProcedureSelector({
 
   // Detectar se está em mobile
   const [isMobile, setIsMobile] = useState(false);
+  const [planoSelectOpen, setPlanoSelectOpen] = useState(false);
+  const [subGrupoSelectOpen, setSubGrupoSelectOpen] = useState(false);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
@@ -175,6 +178,8 @@ const ProcedureSelector = memo(function ProcedureSelector({
               <select
                 value={selectedPlano}
                 onChange={(e) => onPlanoChange(e.target.value)}
+                onClick={() => setPlanoSelectOpen(prev => !prev)}
+                onBlur={() => setPlanoSelectOpen(false)}
                 disabled={loadingPlanos}
                 className="w-full px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-black bg-white appearance-none"
                 style={{ borderColor: "#00B050" }}
@@ -191,7 +196,7 @@ const ProcedureSelector = memo(function ProcedureSelector({
               <ChevronDown
                 size={20}
                 className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 transition-transform duration-300 ${
-                  isOpen ? "rotate-180" : ""
+                  planoSelectOpen ? "rotate-180" : ""
                 }`}
               />
             </div>
@@ -205,6 +210,8 @@ const ProcedureSelector = memo(function ProcedureSelector({
               <select
                 value={selectedSubGrupo}
                 onChange={(e) => onSubGrupoChange(e.target.value)}
+                onClick={() => setSubGrupoSelectOpen(prev => !prev)}
+                onBlur={() => setSubGrupoSelectOpen(false)}
                 disabled={!selectedPlano || loadingSubGrupos}
                 className="w-full px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-black bg-white disabled:bg-gray-50 appearance-none"
                 style={{ borderColor: "#00B050" }}
@@ -225,7 +232,7 @@ const ProcedureSelector = memo(function ProcedureSelector({
               <ChevronDown
                 size={20}
                 className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 transition-transform duration-300 ${
-                  isOpen ? "rotate-180" : ""
+                  subGrupoSelectOpen ? "rotate-180" : ""
                 }`}
               />
             </div>
