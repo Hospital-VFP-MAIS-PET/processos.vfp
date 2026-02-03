@@ -182,7 +182,7 @@ const ProcedureSelector = memo(function ProcedureSelector({
                 <option value="">
                   {loadingPlanos ? "Carregando planos..." : "Selecione um plano"}
                 </option>
-                {planos.map((plano) => (
+                {planos?.map((plano) => (
                   <option key={plano} value={plano}>
                     {plano}
                   </option>
@@ -234,19 +234,19 @@ const ProcedureSelector = memo(function ProcedureSelector({
 
         {!selectedPlano && (
           <p className="text-xs sm:text-sm text-gray-500 mb-4">
-            Selecione um plano para listar os subgrupos.
+            Dica: Selecione um plano e subgrupo para filtrar os procedimentos.
           </p>
         )}
         {selectedPlano && !selectedSubGrupo && (
           <p className="text-xs sm:text-sm text-gray-500 mb-4">
-            Selecione um subgrupo para carregar os procedimentos.
+            Dica: Selecione um subgrupo para refinar a busca.
           </p>
         )}
 
         <div className="relative">
           <button
             onClick={onToggleDropdown}
-            disabled={!selectedSubGrupo || loadingProcedimentos}
+            disabled={loadingProcedimentos}
             className="w-full flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-gray-200 rounded-xl px-5 py-4 hover:border-blue-400 transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span className="text-gray-700 font-medium">
@@ -254,9 +254,7 @@ const ProcedureSelector = memo(function ProcedureSelector({
                 ? "Carregando procedimentos..."
                 : selectedCount > 0
                 ? `${selectedCount} procedimento${selectedCount !== 1 ? "s" : ""} selecionado${selectedCount !== 1 ? "s" : ""}`
-                : selectedSubGrupo
-                ? "Selecionar procedimentos..."
-                : "Selecione um subgrupo primeiro"}
+                : "Selecionar procedimentos..."}
             </span>
             <ChevronDown
               size={20}
@@ -282,7 +280,6 @@ const ProcedureSelector = memo(function ProcedureSelector({
                     placeholder="Buscar procedimento..."
                     value={searchTerm}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    disabled={!selectedSubGrupo}
                     className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-black"
                     style={{ borderColor: '#00B050' }}
                     onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0, 176, 80, 0.2)'}

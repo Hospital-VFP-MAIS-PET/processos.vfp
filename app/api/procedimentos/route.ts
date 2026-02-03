@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
 
     const planosParam = request.nextUrl.searchParams.get("plano");
     const subGrupoParam = request.nextUrl.searchParams.get("sub_grupo");
+    const typeParam = request.nextUrl.searchParams.get("type");
 
     // Criar conexão com banco de dados
     connection = await mysql.createConnection({
@@ -89,6 +90,75 @@ export async function GET(request: NextRequest) {
       database: process.env.DB_NAME,
     });
 
+    // If type=procedimentos, fetch procedures with optional filters
+    if (typeParam === "procedimentos") {
+      if (planosParam && subGrupoParam) {
+        const [rows] = await connection.execute(
+          "SELECT cod, nome, grupo_linha, planos, sub_grupo, preco FROM Procedimentos WHERE planos = ? AND sub_grupo = ? ORDER BY nome ASC LIMIT 5000",
+          [planosParam, subGrupoParam]
+        );
+
+        const procedimentos = rows as Procedimento[];
+
+        return NextResponse.json(
+          {
+            success: true,
+            data: procedimentos,
+            count: procedimentos.length,
+          },
+          {
+            headers: {
+              "Cache-Control": "no-store",
+              Vary: "Origin",
+            },
+          }
+        );
+      } else if (planosParam) {
+        const [rows] = await connection.execute(
+          "SELECT cod, nome, grupo_linha, planos, sub_grupo, preco FROM Procedimentos WHERE planos = ? ORDER BY nome ASC LIMIT 5000",
+          [planosParam]
+        );
+
+        const procedimentos = rows as Procedimento[];
+
+        return NextResponse.json(
+          {
+            success: true,
+            data: procedimentos,
+            count: procedimentos.length,
+          },
+          {
+            headers: {
+              "Cache-Control": "no-store",
+              Vary: "Origin",
+            },
+          }
+        );
+      } else {
+        // No filters - return all procedimentos
+        const [rows] = await connection.execute(
+          "SELECT cod, nome, grupo_linha, planos, sub_grupo, preco FROM Procedimentos ORDER BY nome ASC LIMIT 5000"
+        );
+
+        const procedimentos = rows as Procedimento[];
+
+        return NextResponse.json(
+          {
+            success: true,
+            data: procedimentos,
+            count: procedimentos.length,
+          },
+          {
+            headers: {
+              "Cache-Control": "no-store",
+              Vary: "Origin",
+            },
+          }
+        );
+      }
+    }
+
+    // Return planos list when no plano param specified
     if (!planosParam) {
       const [rows] = await connection.execute(
         "SELECT DISTINCT planos FROM Procedimentos WHERE planos IS NOT NULL AND planos <> '' ORDER BY planos ASC"
@@ -136,25 +206,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const [rows] = await connection.execute(
-      "SELECT cod, nome, grupo_linha, planos, sub_grupo, preco FROM Procedimentos WHERE planos = ? AND sub_grupo = ? ORDER BY nome ASC LIMIT 5000",
-      [planosParam, subGrupoParam]
-    );
-
-    const procedimentos = rows as Procedimento[];
-
+    // This shouldn't happen - all cases should be handled above
     return NextResponse.json(
       {
-        success: true,
-        data: procedimentos,
-        count: procedimentos.length,
+        success: false,
+        error: "Invalid request parameters",
       },
-      {
-        headers: {
-          "Cache-Control": "no-store",
-          Vary: "Origin",
-        },
-      }
+      { status: 400 }
     );
   } catch (error) {
     console.error("Erro ao buscar procedimentos:", error);

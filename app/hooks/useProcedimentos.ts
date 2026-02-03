@@ -66,7 +66,11 @@ export function useProcedimentos(): UseProcedimentosResponse {
       const data = await response.json();
 
       if (data.success) {
-        setPlanos(data.data);
+        // Filter out specific planos
+        const filteredPlanos = data.data.filter(
+          (plano: string) => plano !== "CLUBE DE BENEFICIOS" && plano !== "PARTICULAR"
+        );
+        setPlanos(filteredPlanos);
       } else {
         throw new Error(data.error || "Erro desconhecido");
       }
@@ -130,8 +134,7 @@ export function useProcedimentos(): UseProcedimentosResponse {
     }
   };
 
-  const fetchProcedimentos = async (plano: string, subGrupo: string) => {
-    if (!plano || !subGrupo) return;
+  const fetchProcedimentos = async (plano?: string, subGrupo?: string) => {
     try {
       if (procedimentosAbortRef.current) {
         procedimentosAbortRef.current.abort();
@@ -141,19 +144,26 @@ export function useProcedimentos(): UseProcedimentosResponse {
       setLoadingProcedimentos(true);
       setError(null);
 
-      const response = await fetch(
-        `/api/procedimentos?plano=${encodeURIComponent(
-          plano
-        )}&sub_grupo=${encodeURIComponent(subGrupo)}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          cache: "no-store",
-          signal: procedimentosAbortRef.current.signal,
-        }
-      );
+      const params = new URLSearchParams();
+      params.append("type", "procedimentos");
+      
+      if (plano && subGrupo) {
+        params.append("plano", plano);
+        params.append("sub_grupo", subGrupo);
+      } else if (plano) {
+        params.append("plano", plano);
+      }
+
+      const url = `/api/procedimentos?${params.toString()}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+        signal: procedimentosAbortRef.current.signal,
+      });
 
       if (!response.ok) {
         throw new Error(
@@ -184,6 +194,7 @@ export function useProcedimentos(): UseProcedimentosResponse {
 
   useEffect(() => {
     fetchPlanos();
+    fetchProcedimentos(); // Load all procedures by default
 
     return () => {
       if (planosAbortRef.current) {
@@ -201,7 +212,6 @@ export function useProcedimentos(): UseProcedimentosResponse {
   useEffect(() => {
     setSelectedSubGrupo("");
     setSubGrupos([]);
-    setProcedimentos([]);
 
     if (selectedPlano) {
       fetchSubGrupos(selectedPlano);
@@ -209,10 +219,13 @@ export function useProcedimentos(): UseProcedimentosResponse {
   }, [selectedPlano]);
 
   useEffect(() => {
-    setProcedimentos([]);
-
+    // Refetch procedures with current filters
     if (selectedPlano && selectedSubGrupo) {
       fetchProcedimentos(selectedPlano, selectedSubGrupo);
+    } else if (selectedPlano && !selectedSubGrupo) {
+      fetchProcedimentos(selectedPlano);
+    } else if (!selectedPlano) {
+      fetchProcedimentos(); // No filters, load all
     }
   }, [selectedPlano, selectedSubGrupo]);
 
