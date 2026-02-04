@@ -9,6 +9,7 @@ import ProcedureSelector from "./components/ProcedureSelector";
 import ProcedureList from "./components/ProcedureList";
 import { useProcedimentos, type Procedimento } from "./hooks/useProcedimentos";
 import { validateForm } from "./schemas/formValidation";
+import { parsePrice } from "./helpers/currency";
 
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
@@ -130,6 +131,10 @@ export default function Home() {
       )
       .join("");
 
+    // Calcular valor total
+    const totalValue = selected.reduce((sum, item) => sum + parsePrice(item.preco) * item.count, 0);
+    const totalValueFormatted = totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
     const pdfHTML = `
     <div style="padding: 40px; background-color: #ffffff; font-family: Arial, sans-serif; width: 800px; margin: 0 auto; box-sizing: border-box;">
       <div style="margin-bottom: 30px; border-bottom: 2px solid #000000; padding-bottom: 20px;">
@@ -149,6 +154,12 @@ export default function Home() {
       <div>
         <h3 style="font-size: 18px; font-weight: bold; color: #000000; margin-bottom: 15px;">Procedimentos a Realizar (${totalSelectedCount})</h3>
         ${proceduresHTML}
+      </div>
+
+      <div style="margin-top: 30px; padding: 20px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #d1d5db;">
+        <p style="font-size: 13px; color: #000000; margin: 0 0 10px 0; font-weight: bold;">Resumo</p>
+        <p style="font-size: 12px; color: #000000; margin: 5px 0;">Total de Procedimentos: ${totalSelectedCount}</p>
+        <p style="font-size: 12px; color: #00B050; margin: 5px 0; font-weight: bold;">Valor Total: ${totalValueFormatted}</p>
       </div>
       
       <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #000000; text-align: center;">

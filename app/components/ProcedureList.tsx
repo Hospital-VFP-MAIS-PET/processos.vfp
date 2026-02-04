@@ -1,4 +1,5 @@
 import { Search, X, Download, Printer } from 'lucide-react'
+import { parsePrice } from '@/app/helpers/currency'
 
 export interface Procedimento {
   cod: number
@@ -39,7 +40,9 @@ export default function ProcedureList({
   isGeneratingPDF = false,
 }: ProcedureListProps) {
   const totalCount = selected.reduce((sum, item) => sum + item.count, 0)
-
+  const procedure_total = selected.reduce((sum, item) => sum + item.count, 0)
+  const procedure_total_numeric = selected.reduce((sum, item) => sum + parsePrice(item.preco) * item.count, 0)
+  const procedure_total_value = procedure_total_numeric.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   return (
     <div>
       <div className='bg-white rounded-2xl shadow-lg p-4 sm:p-8 min-h-96 flex flex-col'>
@@ -102,7 +105,7 @@ export default function ProcedureList({
                     marginBottom: '15px',
                   }}
                 >
-                    Procedimentos a Realizar ({totalCount})
+                  Procedimentos a Realizar ({totalCount})
                 </h3>
                 {selected.map((procedure, index) => (
                   <div
@@ -146,31 +149,57 @@ export default function ProcedureList({
                         flex: 1,
                       }}
                     >
-                        {procedure.cod} - {procedure.nome}
+                      {procedure.cod} - {procedure.nome}
                     </p>
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          color: '#00B050',
-                          fontWeight: 'bold',
-                          marginRight: '8px',
-                        }}
-                      >
-                        {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -' ? procedure.preco : 'R$ 0'}
-                      </span>
-                      <div
-                        style={{
-                          marginLeft: '8px',
-                          fontSize: '12px',
-                          color: '#000000',
-                          fontWeight: 'bold',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        Qtd: x{procedure.count}
-                      </div>
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        color: '#00B050',
+                        fontWeight: 'bold',
+                        marginRight: '8px',
+                      }}
+                    >
+                      {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -'
+                        ? procedure.preco
+                        : 'R$ 0'}
+                    </span>
+                    <div
+                      style={{
+                        marginLeft: '8px',
+                        fontSize: '12px',
+                        color: '#000000',
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Qtd: x{procedure.count}
+                    </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Resumo do PDF */}
+              <div
+                style={{
+                  marginTop: '30px',
+                  paddingTop: '20px',
+                  paddingBottom: '20px',
+                  paddingLeft: '15px',
+                  paddingRight: '15px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                }}
+              >
+                <p style={{ fontSize: '13px', color: '#000000', margin: '0 0 10px 0', fontWeight: 'bold' }}>
+                  Resumo
+                </p>
+                <p style={{ fontSize: '12px', color: '#000000', margin: '5px 0' }}>
+                  <strong>Total de Procedimentos:</strong> {procedure_total}
+                </p>
+                <p style={{ fontSize: '12px', color: '#00B050', margin: '5px 0', fontWeight: 'bold' }}>
+                  <strong>Valor Total:</strong> {procedure_total_value}
+                </p>
               </div>
 
               {/* Rodapé do PDF */}
@@ -219,7 +248,9 @@ export default function ProcedureList({
                       </div>
                       <div className='flex items-center justify-between gap-2 ml-8'>
                         <p className='font-semibold text-xs' style={{ color: '#00B050' }}>
-                          {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -' ? procedure.preco : 'R$ 0'}
+                          {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -'
+                            ? procedure.preco
+                            : 'R$ 0'}
                         </p>
                         <div className='flex items-center gap-2'>
                           <div className='flex items-center gap-1 bg-gray-100 rounded-lg p-1'>
@@ -265,7 +296,9 @@ export default function ProcedureList({
                           </p>
                         </div>
                         <p className='font-semibold text-sm mr-2 flex-shrink-0' style={{ color: '#00B050' }}>
-                          {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -' ? procedure.preco : 'R$ 0'}
+                          {procedure.preco && procedure.preco.trim() !== '' && procedure.preco.trim() !== 'R$ -'
+                            ? procedure.preco
+                            : 'R$ 0'}
                         </p>
                       </div>
                       <div className='flex items-center gap-2 flex-shrink-0'>
@@ -300,15 +333,36 @@ export default function ProcedureList({
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className='flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-gray-200'>
+            {/* Summary and Actions */}
+            <div className='flex flex-col gap-4 pt-6 border-t border-gray-200'>
+              {/* Summary Info */}
+              <div className='flex flex-col sm:flex-row gap-4 sm:gap-8 text-sm'>
+                <div>
+                  <p className='text-gray-500 mb-1'>Total de Procedimentos</p>
+                  <p className='text-lg font-semibold text-gray-700'>{procedure_total}</p>
+                </div>
+                <div>
+                  <p className='text-gray-500 mb-1'>Valor Total</p>
+                  <p className='text-lg font-semibold' style={{ color: '#00B050' }}>
+                    {procedure_total_value}
+                  </p>
+                </div>
+              </div>
+
+              {/* Download Button */}
               <button
                 onClick={onGeneratePDF}
                 disabled={!isFormValid || isGeneratingPDF}
-                className={`flex-1 flex items-center justify-center gap-2 text-white font-semibold py-2 sm:py-3 px-3 sm:px-6 rounded-lg transition-all duration-200 shadow-md text-sm sm:text-base ${
-                  !isFormValid || isGeneratingPDF ? 'opacity-60 cursor-not-allowed bg-gray-400' : 'hover:shadow-lg cursor-pointer'
+                className={`w-full flex items-center justify-center gap-2 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-all duration-200 shadow-md text-sm sm:text-base ${
+                  !isFormValid || isGeneratingPDF
+                    ? 'opacity-60 cursor-not-allowed bg-gray-400'
+                    : 'hover:shadow-lg cursor-pointer'
                 }`}
-                style={!isFormValid || isGeneratingPDF ? { backgroundColor: '#9ca3af', cursor: 'not-allowed' } : { backgroundColor: '#00B050', cursor: 'pointer' }}
+                style={
+                  !isFormValid || isGeneratingPDF
+                    ? { backgroundColor: '#9ca3af', cursor: 'not-allowed' }
+                    : { backgroundColor: '#00B050', cursor: 'pointer' }
+                }
                 onMouseEnter={e => {
                   if (isFormValid && !isGeneratingPDF) {
                     e.currentTarget.style.backgroundColor = '#009940'
